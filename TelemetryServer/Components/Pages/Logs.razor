@@ -1,0 +1,87 @@
+@page "/logs"
+@rendermode InteractiveServer
+@implements IDisposable
+@inject ITelemetryStore Store
+
+<PageTitle>Logs - TelemetryServer</PageTitle>
+
+<MudText Typo="Typo.h5" GutterBottom="true">Logs</MudText>
+<MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">@entries.Count 件 (最新順, 最大 500)</MudText>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mb-2">
+    <MudTextField @bind-Value="filter" Placeholder="本文で絞り込み..." Immediate="true"
+                  Variant="Variant.Outlined" Margin="Margin.Dense"
+                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                  Style="max-width:300px" />
+    <MudSpacer />
+    <MudButton Variant="Variant.Outlined" Size="Size.Small"
+               StartIcon="@Icons.Material.Filled.Refresh" OnClick="Refresh">Refresh</MudButton>
+</MudStack>
+
+<MudTable Items="Filtered()" Dense="true" Hover="true" Elevation="1" T="LogEntry">
+    <HeaderContent>
+        <MudTh Style="width:90px">Time</MudTh>
+        <MudTh Style="width:140px">Service</MudTh>
+        <MudTh Style="width:90px">Severity</MudTh>
+        <MudTh>Body</MudTh>
+        <MudTh>Attributes</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd Style="font-family:monospace;font-size:0.8rem">@context.Timestamp.ToLocalTime().ToString("HH:mm:ss")</MudTd>
+        <MudTd>@context.Resource.ServiceName</MudTd>
+        <MudTd>
+            <MudChip T="string" Size="Size.Small" Color="@GetSeverityColor(context.SeverityNumber)">@context.SeverityText</MudChip>
+        </MudTd>
+        <MudTd Style="max-width:500px;word-break:break-word">@context.Body</MudTd>
+        <MudTd Style="font-family:monospace;font-size:0.75rem" Class="mud-text-secondary">@AttrSummary(context.Attributes)</MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText Class="pa-4 mud-text-secondary">No logs.</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    private IReadOnlyList<LogEntry> entries = Array.Empty<LogEntry>();
+    private string filter = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        Refresh();
+        Store.Changed += OnStoreChanged;
+    }
+
+    private void OnStoreChanged(object? sender, EventArgs e) =>
+        InvokeAsync(() => { Refresh(); StateHasChanged(); });
+
+    private void Refresh() => entries = Store.GetLogs();
+
+    private IEnumerable<LogEntry> Filtered()
+    {
+        if (string.IsNullOrWhiteSpace(filter))
+        {
+            return entries;
+        }
+        return entries.Where(e => e.Body.Contains(filter, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static Color GetSeverityColor(int sev) => sev switch
+    {
+        >= 17 => Color.Error,
+        >= 13 => Color.Error,
+        >= 9 => Color.Warning,
+        >= 5 => Color.Info,
+        _ => Color.Default,
+    };
+
+    private static string AttrSummary(IReadOnlyList<KeyValueAttr> attrs)
+    {
+        if (attrs.Count == 0)
+        {
+            return "-";
+        }
+        return string.Join(", ", attrs.Take(3).Select(a => $"{a.Key}={a.Value}"))
+            + (attrs.Count > 3 ? $" (+{attrs.Count - 3})" : string.Empty);
+    }
+
+    public void Dispose() => Store.Changed -= OnStoreChanged;
+}

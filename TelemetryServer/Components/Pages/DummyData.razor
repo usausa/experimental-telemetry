@@ -1,0 +1,92 @@
+@page "/dummy-data"
+@rendermode InteractiveServer
+@inject DummyDataGenerator Generator
+@inject ITelemetryStore Store
+@inject ISnackbar Snackbar
+
+<PageTitle>Dummy Data - TelemetryServer</PageTitle>
+
+<MudText Typo="Typo.h5" GutterBottom="true">Dummy Data Injection</MudText>
+<MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
+    UI 確認用のダミーテレメトリをメモリストアへ直接投入します。
+</MudText>
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+        <MudNumericField T="int" @bind-Value="count" Min="1" Max="500" Label="Count"
+                         Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:120px" />
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.ShowChart" OnClick="InjectMetrics">Inject Metrics</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Info"
+                   StartIcon="@Icons.Material.Filled.List" OnClick="InjectLogs">Inject Logs</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                   StartIcon="@Icons.Material.Filled.AccountTree" OnClick="InjectSpans">Inject Spans</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Success"
+                   StartIcon="@Icons.Material.Filled.Bolt" OnClick="InjectAll">Inject All</MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Error"
+                   StartIcon="@Icons.Material.Filled.DeleteSweep" OnClick="ClearStore">Clear Store</MudButton>
+    </MudStack>
+</MudPaper>
+
+<MudPaper Class="pa-4" Elevation="1">
+    <MudText Typo="Typo.subtitle1" GutterBottom="true">Current Store</MudText>
+    <MudGrid Spacing="2">
+        <MudItem xs="4">
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">Metrics</MudText>
+            <MudText Typo="Typo.h6">@summary.MetricCount</MudText>
+        </MudItem>
+        <MudItem xs="4">
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">Logs</MudText>
+            <MudText Typo="Typo.h6">@summary.LogCount</MudText>
+        </MudItem>
+        <MudItem xs="4">
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">Spans</MudText>
+            <MudText Typo="Typo.h6">@summary.SpanCount</MudText>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@code {
+    private int count = 10;
+    private TelemetrySummary summary = new(0, 0, 0, null);
+
+    protected override void OnInitialized() => RefreshSummary();
+
+    private void InjectMetrics()
+    {
+        var added = Generator.InjectMetrics(count);
+        RefreshSummary();
+        Snackbar.Add($"Injected {added} metrics", Severity.Success);
+    }
+
+    private void InjectLogs()
+    {
+        var added = Generator.InjectLogs(count);
+        RefreshSummary();
+        Snackbar.Add($"Injected {added} logs", Severity.Success);
+    }
+
+    private void InjectSpans()
+    {
+        var added = Generator.InjectSpans(count);
+        RefreshSummary();
+        Snackbar.Add($"Injected {added} spans", Severity.Success);
+    }
+
+    private void InjectAll()
+    {
+        var result = Generator.InjectAll(count);
+        RefreshSummary();
+        Snackbar.Add($"Injected metrics={result.Metrics}, logs={result.Logs}, spans={result.Spans}", Severity.Success);
+    }
+
+    private void ClearStore()
+    {
+        Store.Clear();
+        RefreshSummary();
+        Snackbar.Add("Store cleared", Severity.Info);
+    }
+
+    private void RefreshSummary() => summary = Store.GetSummary();
+}

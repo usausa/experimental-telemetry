@@ -13,4 +13,5 @@
     <File Path="TelemetryServer.sln.DotSettings" />
   </Folder>
   <Project Path="TelemetryServer/TelemetryServer.csproj" />
+  <Project Path="TelemetryClient/TelemetryClient.csproj" />
 </Solution>

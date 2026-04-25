@@ -1,28 +1,44 @@
 using MudBlazor.Services;
 using TelemetryServer.Components;
+using TelemetryServer.Telemetry.DummyData;
+using TelemetryServer.Telemetry.Services;
+using TelemetryServer.Telemetry.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add MudBlazor services
 builder.Services.AddMudServices();
 
-// Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+builder.Services.AddGrpc();
+
+var capacity = builder.Configuration.GetValue("TelemetryStore:Capacity", 5000);
+builder.Services.AddSingleton<ITelemetryStore>(_ => new InMemoryTelemetryStore(capacity));
+builder.Services.AddSingleton<DummyDataGenerator>();
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
 }
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 
-
 app.UseAntiforgery();
 
 app.MapStaticAssets();
+
+app.MapGrpcService<OtlpMetricsService>();
+app.MapGrpcService<OtlpLogsService>();
+app.MapGrpcService<OtlpTraceService>();
+
+app.MapGet("/", context =>
+{
+    context.Response.Redirect("/dashboard");
+    return Task.CompletedTask;
+}).ExcludeFromDescription();
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

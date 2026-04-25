@@ -1,0 +1,98 @@
+@page "/dashboard"
+@rendermode InteractiveServer
+@implements IDisposable
+@inject ITelemetryStore Store
+
+<PageTitle>Dashboard - TelemetryServer</PageTitle>
+
+<MudText Typo="Typo.h5" GutterBottom="true">Dashboard</MudText>
+<MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
+    OTLP/gRPC エンドポイント (port 4317) でテレメトリを受信中。
+</MudText>
+
+<MudGrid Spacing="2" Class="mb-4">
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4" Elevation="1">
+            <div class="d-flex align-center gap-2 mb-1">
+                <MudIcon Icon="@Icons.Material.Filled.ShowChart" Color="Color.Primary" Size="Size.Small" />
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">Metrics</MudText>
+            </div>
+            <MudText Typo="Typo.h4" Color="Color.Primary">@summary.MetricCount</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4" Elevation="1">
+            <div class="d-flex align-center gap-2 mb-1">
+                <MudIcon Icon="@Icons.Material.Filled.List" Color="Color.Info" Size="Size.Small" />
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">Logs</MudText>
+            </div>
+            <MudText Typo="Typo.h4" Color="Color.Info">@summary.LogCount</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4" Elevation="1">
+            <div class="d-flex align-center gap-2 mb-1">
+                <MudIcon Icon="@Icons.Material.Filled.AccountTree" Color="Color.Secondary" Size="Size.Small" />
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">Spans</MudText>
+            </div>
+            <MudText Typo="Typo.h4" Color="Color.Secondary">@summary.SpanCount</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4" Elevation="1">
+            <div class="d-flex align-center gap-2 mb-1">
+                <MudIcon Icon="@Icons.Material.Filled.Schedule" Color="Color.Success" Size="Size.Small" />
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">Last received</MudText>
+            </div>
+            <MudText Typo="Typo.h6">@(summary.LastReceivedAt?.ToLocalTime().ToString("HH:mm:ss") ?? "-")</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudPaper Class="pa-4" Elevation="1">
+    <MudText Typo="Typo.subtitle1" GutterBottom="true">送信設定例 (Claude Code)</MudText>
+    <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
+        以下を環境変数として設定すると、本サーバーへ OTLP/gRPC でテレメトリが送信されます。
+    </MudText>
+    <pre class="codeblock">export CLAUDE_CODE_ENABLE_TELEMETRY=1
+export OTEL_METRICS_EXPORTER=otlp
+export OTEL_LOGS_EXPORTER=otlp
+export OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317</pre>
+</MudPaper>
+
+@code {
+    private TelemetrySummary summary = new(0, 0, 0, null);
+
+    protected override void OnInitialized()
+    {
+        Refresh();
+        Store.Changed += OnStoreChanged;
+    }
+
+    private void OnStoreChanged(object? sender, EventArgs e)
+    {
+        InvokeAsync(() =>
+        {
+            Refresh();
+            StateHasChanged();
+        });
+    }
+
+    private void Refresh() => summary = Store.GetSummary();
+
+    public void Dispose() => Store.Changed -= OnStoreChanged;
+}
+
+<style>
+    .codeblock {
+        background: #0f172a;
+        color: #e2e8f0;
+        padding: 1rem;
+        border-radius: 6px;
+        font-family: Consolas, monospace;
+        font-size: 0.85rem;
+        overflow-x: auto;
+        margin: 0;
+    }
+</style>

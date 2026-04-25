@@ -1,0 +1,95 @@
+@page "/traces"
+@rendermode InteractiveServer
+@implements IDisposable
+@inject ITelemetryStore Store
+
+<PageTitle>Traces - TelemetryServer</PageTitle>
+
+<MudText Typo="Typo.h5" GutterBottom="true">Traces</MudText>
+<MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">@spans.Count 件 (最新順, 最大 500)</MudText>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mb-2">
+    <MudTextField @bind-Value="filter" Placeholder="Span 名で絞り込み..." Immediate="true"
+                  Variant="Variant.Outlined" Margin="Margin.Dense"
+                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                  Style="max-width:300px" />
+    <MudSpacer />
+    <MudButton Variant="Variant.Outlined" Size="Size.Small"
+               StartIcon="@Icons.Material.Filled.Refresh" OnClick="Refresh">Refresh</MudButton>
+</MudStack>
+
+<MudTable Items="Filtered()" Dense="true" Hover="true" Elevation="1" T="SpanEntry">
+    <HeaderContent>
+        <MudTh Style="width:90px">Time</MudTh>
+        <MudTh Style="width:140px">Service</MudTh>
+        <MudTh>Span</MudTh>
+        <MudTh Style="width:140px">Kind</MudTh>
+        <MudTh Style="width:100px">Duration</MudTh>
+        <MudTh Style="width:200px">Trace / Span</MudTh>
+        <MudTh Style="width:100px">Status</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd Style="font-family:monospace;font-size:0.8rem">@context.StartTime.ToLocalTime().ToString("HH:mm:ss")</MudTd>
+        <MudTd>@context.Resource.ServiceName</MudTd>
+        <MudTd>@context.Name</MudTd>
+        <MudTd><MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@context.Kind</MudChip></MudTd>
+        <MudTd Style="text-align:right;font-family:monospace">@FormatDuration(context.Duration)</MudTd>
+        <MudTd Style="font-family:monospace;font-size:0.75rem" Class="mud-text-secondary">@Trim(context.TraceId) / @Trim(context.SpanId)</MudTd>
+        <MudTd>
+            <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.StatusCode)">@context.StatusCode</MudChip>
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText Class="pa-4 mud-text-secondary">No traces.</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    private IReadOnlyList<SpanEntry> spans = Array.Empty<SpanEntry>();
+    private string filter = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        Refresh();
+        Store.Changed += OnStoreChanged;
+    }
+
+    private void OnStoreChanged(object? sender, EventArgs e) =>
+        InvokeAsync(() => { Refresh(); StateHasChanged(); });
+
+    private void Refresh() => spans = Store.GetSpans();
+
+    private IEnumerable<SpanEntry> Filtered()
+    {
+        if (string.IsNullOrWhiteSpace(filter))
+        {
+            return spans;
+        }
+        return spans.Where(s => s.Name.Contains(filter, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string Trim(string id) =>
+        string.IsNullOrEmpty(id) ? "-" : id[..Math.Min(8, id.Length)];
+
+    private static string FormatDuration(TimeSpan d)
+    {
+        if (d.TotalSeconds >= 1)
+        {
+            return d.TotalSeconds.ToString("0.00") + "s";
+        }
+        if (d.TotalMilliseconds >= 1)
+        {
+            return d.TotalMilliseconds.ToString("0") + "ms";
+        }
+        return (d.TotalMilliseconds * 1000).ToString("0") + "µs";
+    }
+
+    private static Color GetStatusColor(string status) => status switch
+    {
+        "OK" => Color.Success,
+        "ERROR" => Color.Error,
+        _ => Color.Default,
+    };
+
+    public void Dispose() => Store.Changed -= OnStoreChanged;
+}

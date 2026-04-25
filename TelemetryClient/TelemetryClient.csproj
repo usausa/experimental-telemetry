@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <CodeAnalysisRuleSet>..\Analyzers.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Grpc.Net.Client" Version="2.76.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.76.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Google.Protobuf" Version="3.32.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="..\TelemetryServer\Protos\opentelemetry\proto\common\v1\common.proto" GrpcServices="None" ProtoRoot="..\TelemetryServer\Protos" />
+    <Protobuf Include="..\TelemetryServer\Protos\opentelemetry\proto\resource\v1\resource.proto" GrpcServices="None" ProtoRoot="..\TelemetryServer\Protos" />
+    <Protobuf Include="..\TelemetryServer\Protos\opentelemetry\proto\metrics\v1\metrics.proto" GrpcServices="None" ProtoRoot="..\TelemetryServer\Protos" />
+    <Protobuf Include="..\TelemetryServer\Protos\opentelemetry\proto\logs\v1\logs.proto" GrpcServices="None" ProtoRoot="..\TelemetryServer\Protos" />
+    <Protobuf Include="..\TelemetryServer\Protos\opentelemetry\proto\trace\v1\trace.proto" GrpcServices="None" ProtoRoot="..\TelemetryServer\Protos" />
+    <Protobuf Include="..\TelemetryServer\Protos\opentelemetry\proto\collector\metrics\v1\metrics_service.proto" GrpcServices="Client" ProtoRoot="..\TelemetryServer\Protos" />
+    <Protobuf Include="..\TelemetryServer\Protos\opentelemetry\proto\collector\logs\v1\logs_service.proto" GrpcServices="Client" ProtoRoot="..\TelemetryServer\Protos" />
+    <Protobuf Include="..\TelemetryServer\Protos\opentelemetry\proto\collector\trace\v1\trace_service.proto" GrpcServices="Client" ProtoRoot="..\TelemetryServer\Protos" />
+  </ItemGroup>
+
+</Project>

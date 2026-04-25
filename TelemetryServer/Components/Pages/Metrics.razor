@@ -1,0 +1,80 @@
+@page "/metrics"
+@rendermode InteractiveServer
+@implements IDisposable
+@inject ITelemetryStore Store
+
+<PageTitle>Metrics - TelemetryServer</PageTitle>
+
+<MudText Typo="Typo.h5" GutterBottom="true">Metrics</MudText>
+<MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">@points.Count 件 (最新順, 最大 500)</MudText>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mb-2">
+    <MudTextField @bind-Value="filter" Placeholder="名前で絞り込み..." Immediate="true"
+                  Variant="Variant.Outlined" Margin="Margin.Dense"
+                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                  Style="max-width:300px" />
+    <MudSpacer />
+    <MudButton Variant="Variant.Outlined" Size="Size.Small"
+               StartIcon="@Icons.Material.Filled.Refresh" OnClick="Refresh">Refresh</MudButton>
+</MudStack>
+
+<MudTable Items="Filtered()" Dense="true" Hover="true" Elevation="1" T="MetricPoint">
+    <HeaderContent>
+        <MudTh Style="width:90px">Time</MudTh>
+        <MudTh Style="width:140px">Service</MudTh>
+        <MudTh>Metric</MudTh>
+        <MudTh Style="width:120px">Kind</MudTh>
+        <MudTh Style="width:100px">Value</MudTh>
+        <MudTh Style="width:60px">Unit</MudTh>
+        <MudTh>Attributes</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd Style="font-family:monospace;font-size:0.8rem">@context.Timestamp.ToLocalTime().ToString("HH:mm:ss")</MudTd>
+        <MudTd>@context.Resource.ServiceName</MudTd>
+        <MudTd Style="font-family:monospace;font-size:0.85rem">@context.Name</MudTd>
+        <MudTd><MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">@context.Kind</MudChip></MudTd>
+        <MudTd Style="text-align:right;font-family:monospace">@context.Value.ToString("0.###")</MudTd>
+        <MudTd>@context.Unit</MudTd>
+        <MudTd Style="font-family:monospace;font-size:0.75rem" Class="mud-text-secondary">@AttrSummary(context.Attributes)</MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText Class="pa-4 mud-text-secondary">No metrics.</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    private IReadOnlyList<MetricPoint> points = Array.Empty<MetricPoint>();
+    private string filter = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        Refresh();
+        Store.Changed += OnStoreChanged;
+    }
+
+    private void OnStoreChanged(object? sender, EventArgs e) =>
+        InvokeAsync(() => { Refresh(); StateHasChanged(); });
+
+    private void Refresh() => points = Store.GetMetrics();
+
+    private IEnumerable<MetricPoint> Filtered()
+    {
+        if (string.IsNullOrWhiteSpace(filter))
+        {
+            return points;
+        }
+        return points.Where(p => p.Name.Contains(filter, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string AttrSummary(IReadOnlyList<KeyValueAttr> attrs)
+    {
+        if (attrs.Count == 0)
+        {
+            return "-";
+        }
+        return string.Join(", ", attrs.Take(4).Select(a => $"{a.Key}={a.Value}"))
+            + (attrs.Count > 4 ? $" (+{attrs.Count - 4})" : string.Empty);
+    }
+
+    public void Dispose() => Store.Changed -= OnStoreChanged;
+}
