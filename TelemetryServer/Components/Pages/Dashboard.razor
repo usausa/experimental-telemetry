@@ -11,7 +11,16 @@
 </MudText>
 
 <MudGrid Spacing="2" Class="mb-4">
-    <MudItem xs="6" sm="3">
+    <MudItem xs="6" sm="4" md="2">
+        <MudPaper Class="pa-4" Elevation="1">
+            <div class="d-flex align-center gap-2 mb-1">
+                <MudIcon Icon="@Icons.Material.Filled.Apps" Color="Color.Default" Size="Size.Small" />
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">Services</MudText>
+            </div>
+            <MudText Typo="Typo.h4">@summary.ServiceCount</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="4" md="2">
         <MudPaper Class="pa-4" Elevation="1">
             <div class="d-flex align-center gap-2 mb-1">
                 <MudIcon Icon="@Icons.Material.Filled.ShowChart" Color="Color.Primary" Size="Size.Small" />
@@ -20,7 +29,7 @@
             <MudText Typo="Typo.h4" Color="Color.Primary">@summary.MetricCount</MudText>
         </MudPaper>
     </MudItem>
-    <MudItem xs="6" sm="3">
+    <MudItem xs="6" sm="4" md="2">
         <MudPaper Class="pa-4" Elevation="1">
             <div class="d-flex align-center gap-2 mb-1">
                 <MudIcon Icon="@Icons.Material.Filled.List" Color="Color.Info" Size="Size.Small" />
@@ -29,16 +38,25 @@
             <MudText Typo="Typo.h4" Color="Color.Info">@summary.LogCount</MudText>
         </MudPaper>
     </MudItem>
-    <MudItem xs="6" sm="3">
+    <MudItem xs="6" sm="4" md="2">
         <MudPaper Class="pa-4" Elevation="1">
             <div class="d-flex align-center gap-2 mb-1">
-                <MudIcon Icon="@Icons.Material.Filled.AccountTree" Color="Color.Secondary" Size="Size.Small" />
-                <MudText Typo="Typo.caption" Class="mud-text-secondary">Spans</MudText>
+                <MudIcon Icon="@Icons.Material.Filled.Hub" Color="Color.Secondary" Size="Size.Small" />
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">Traces</MudText>
             </div>
-            <MudText Typo="Typo.h4" Color="Color.Secondary">@summary.SpanCount</MudText>
+            <MudText Typo="Typo.h4" Color="Color.Secondary">@summary.TraceCount</MudText>
         </MudPaper>
     </MudItem>
-    <MudItem xs="6" sm="3">
+    <MudItem xs="6" sm="4" md="2">
+        <MudPaper Class="pa-4" Elevation="1">
+            <div class="d-flex align-center gap-2 mb-1">
+                <MudIcon Icon="@Icons.Material.Filled.AccountTree" Color="Color.Tertiary" Size="Size.Small" />
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">Spans</MudText>
+            </div>
+            <MudText Typo="Typo.h4">@summary.SpanCount</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="4" md="2">
         <MudPaper Class="pa-4" Elevation="1">
             <div class="d-flex align-center gap-2 mb-1">
                 <MudIcon Icon="@Icons.Material.Filled.Schedule" Color="Color.Success" Size="Size.Small" />
@@ -62,7 +80,7 @@ export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317</pre>
 </MudPaper>
 
 @code {
-    private TelemetrySummary summary = new(0, 0, 0, null);
+    private TelemetrySummary summary = new(0, 0, 0, 0, 0, null);
 
     protected override void OnInitialized()
     {

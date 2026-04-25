@@ -185,13 +185,20 @@ internal static class TelemetryMapper
                         span.Kind.ToString(),
                         FromUnixNano(span.StartTimeUnixNano),
                         FromUnixNano(span.EndTimeUnixNano),
-                        span.Status?.Code.ToString() ?? "UNSET",
+                        MapStatusCode(span.Status?.Code),
                         span.Status?.Message,
                         MapAttributes(span.Attributes));
                 }
             }
         }
     }
+
+    private static string MapStatusCode(Status.Types.StatusCode? code) => code switch
+    {
+        Status.Types.StatusCode.Ok => "OK",
+        Status.Types.StatusCode.Error => "ERROR",
+        _ => "UNSET",
+    };
 
     [SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "OTEL specification mandates lowercase hex for trace and span identifiers.")]
     private static string? ByteStringToHex(ByteString? bytes)

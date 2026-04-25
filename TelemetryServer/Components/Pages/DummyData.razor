@@ -32,15 +32,23 @@
 <MudPaper Class="pa-4" Elevation="1">
     <MudText Typo="Typo.subtitle1" GutterBottom="true">Current Store</MudText>
     <MudGrid Spacing="2">
-        <MudItem xs="4">
+        <MudItem xs="4" sm="2">
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">Services</MudText>
+            <MudText Typo="Typo.h6">@summary.ServiceCount</MudText>
+        </MudItem>
+        <MudItem xs="4" sm="2">
             <MudText Typo="Typo.caption" Class="mud-text-secondary">Metrics</MudText>
             <MudText Typo="Typo.h6">@summary.MetricCount</MudText>
         </MudItem>
-        <MudItem xs="4">
+        <MudItem xs="4" sm="2">
             <MudText Typo="Typo.caption" Class="mud-text-secondary">Logs</MudText>
             <MudText Typo="Typo.h6">@summary.LogCount</MudText>
         </MudItem>
-        <MudItem xs="4">
+        <MudItem xs="4" sm="2">
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">Traces</MudText>
+            <MudText Typo="Typo.h6">@summary.TraceCount</MudText>
+        </MudItem>
+        <MudItem xs="4" sm="2">
             <MudText Typo="Typo.caption" Class="mud-text-secondary">Spans</MudText>
             <MudText Typo="Typo.h6">@summary.SpanCount</MudText>
         </MudItem>
@@ -49,7 +57,7 @@
 
 @code {
     private int count = 10;
-    private TelemetrySummary summary = new(0, 0, 0, null);
+    private TelemetrySummary summary = new(0, 0, 0, 0, 0, null);
 
     protected override void OnInitialized() => RefreshSummary();
 

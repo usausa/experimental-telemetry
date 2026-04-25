@@ -1,0 +1,233 @@
+@using System.Globalization
+@using System.Net
+@using System.Text
+
+<div class="chart-container" style="width:100%;overflow-x:auto">
+    @if (seriesViews.Count == 0)
+    {
+        <div class="mud-text-secondary" style="padding:2rem;text-align:center">@EmptyMessage</div>
+    }
+    else
+    {
+        <svg width="@Width" height="@Height" viewBox="0 0 @Width @Height"
+             preserveAspectRatio="xMidYMid meet"
+             style="font-family:Inter,Roboto,sans-serif;font-size:11px;display:block">
+            @svgBody
+        </svg>
+
+        <div style="display:flex;flex-wrap:wrap;gap:0.5rem 1rem;margin-top:0.5rem;font-size:0.8rem">
+            @foreach (var s in seriesViews)
+            {
+                <span style="display:inline-flex;align-items:center;gap:0.3rem">
+                    <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:@s.Color"></span>
+                    <span style="opacity:0.85">@s.Label</span>
+                </span>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private static readonly string[] Palette =
+    [
+        "#42a5f5", "#66bb6a", "#ffa726", "#ab47bc",
+        "#ef5350", "#26a69a", "#ec407a", "#5c6bc0",
+    ];
+
+    [Parameter] public IReadOnlyList<ChartSeries> Series { get; set; } = Array.Empty<ChartSeries>();
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? Unit { get; set; }
+    [Parameter] public int Width { get; set; } = 880;
+    [Parameter] public int Height { get; set; } = 280;
+    [Parameter] public string EmptyMessage { get; set; } = "No data";
+
+    private const double PadLeft = 56;
+    private const double PadRight = 12;
+    private const double PadTop = 24;
+    private const double PadBottom = 28;
+
+    private MarkupString svgBody;
+    private List<SeriesView> seriesViews = [];
+
+    protected override void OnParametersSet()
+    {
+        seriesViews = [];
+        svgBody = default;
+
+        var nonEmpty = Series.Where(s => s.Points.Count > 0).ToList();
+        if (nonEmpty.Count == 0)
+        {
+            return;
+        }
+
+        var plotLeft = PadLeft;
+        var plotRight = Width - PadRight;
+        var plotTop = PadTop;
+        var plotBottom = Height - PadBottom;
+
+        var minT = nonEmpty.SelectMany(s => s.Points).Min(p => p.Time);
+        var maxT = nonEmpty.SelectMany(s => s.Points).Max(p => p.Time);
+        if (minT == maxT)
+        {
+            maxT = minT.AddSeconds(1);
+        }
+        var minV = nonEmpty.SelectMany(s => s.Points).Min(p => p.Value);
+        var maxV = nonEmpty.SelectMany(s => s.Points).Max(p => p.Value);
+        if (Math.Abs(maxV - minV) < 1e-9)
+        {
+            maxV += 1;
+            minV -= 1;
+        }
+        var pad = (maxV - minV) * 0.08;
+        minV -= pad;
+        maxV += pad;
+
+        var sb = new StringBuilder();
+
+        // Y grid + axis labels
+        for (var i = 0; i <= 4; i++)
+        {
+            var t = i / 4.0;
+            var v = minV + ((maxV - minV) * (1 - t));
+            var y = plotTop + (t * (plotBottom - plotTop));
+            AppendLine(sb, plotLeft, y, plotRight, y, "currentColor", 0.08);
+            AppendText(sb, plotLeft - 8, y + 3, "end", "currentColor", 0.7, FormatY(v));
+        }
+
+        // X axis ticks and labels
+        for (var i = 0; i <= 4; i++)
+        {
+            var t = i / 4.0;
+            var x = plotLeft + (t * (plotRight - plotLeft));
+            AppendLine(sb, x, plotBottom, x, plotBottom + 4, "currentColor", 0.4);
+            var time = minT.AddSeconds(t * (maxT - minT).TotalSeconds);
+            AppendText(sb, x, plotBottom + 16, "middle", "currentColor", 0.7,
+                time.ToLocalTime().ToString("HH:mm:ss", CultureInfo.InvariantCulture));
+        }
+
+        // Axis lines
+        AppendLine(sb, plotLeft, plotBottom, plotRight, plotBottom, "currentColor", 0.5);
+        AppendLine(sb, plotLeft, plotTop, plotLeft, plotBottom, "currentColor", 0.5);
+
+        // Series
+        for (var i = 0; i < nonEmpty.Count; i++)
+        {
+            var s = nonEmpty[i];
+            var color = Palette[i % Palette.Length];
+            var ordered = s.Points.OrderBy(p => p.Time).ToList();
+            seriesViews.Add(new SeriesView(s.Label, color));
+
+            var poly = new StringBuilder();
+            foreach (var p in ordered)
+            {
+                var x = MapX(p.Time, minT, maxT, plotLeft, plotRight);
+                var y = MapY(p.Value, minV, maxV, plotTop, plotBottom);
+                if (poly.Length > 0)
+                {
+                    poly.Append(' ');
+                }
+                poly.Append(Fmt(x)).Append(',').Append(Fmt(y));
+            }
+            if (ordered.Count > 1)
+            {
+                sb.Append(CultureInfo.InvariantCulture,
+                    $"<polyline fill=\"none\" stroke=\"{color}\" stroke-width=\"1.6\" points=\"{poly}\" />");
+            }
+            foreach (var p in ordered)
+            {
+                var x = MapX(p.Time, minT, maxT, plotLeft, plotRight);
+                var y = MapY(p.Value, minV, maxV, plotTop, plotBottom);
+                var tooltip = WebUtility.HtmlEncode(string.Create(CultureInfo.InvariantCulture,
+                    $"{p.Time.ToLocalTime():HH:mm:ss} = {p.Value:0.###}"));
+                sb.Append(CultureInfo.InvariantCulture,
+                    $"<circle cx=\"{Fmt(x)}\" cy=\"{Fmt(y)}\" r=\"2.5\" fill=\"{color}\"><title>{tooltip}</title></circle>");
+            }
+        }
+
+        // Title and unit
+        if (!string.IsNullOrEmpty(Title))
+        {
+            AppendText(sb, plotLeft, 14, "start", "currentColor", 1.0,
+                Title, fontWeight: 600, fontSize: 13);
+        }
+        if (!string.IsNullOrEmpty(Unit))
+        {
+            AppendText(sb, plotLeft - 8, plotTop - 6, "end", "currentColor", 0.7, Unit);
+        }
+
+        svgBody = new MarkupString(sb.ToString());
+    }
+
+    private static void AppendLine(StringBuilder sb, double x1, double y1, double x2, double y2,
+        string stroke, double opacity)
+    {
+        sb.Append(CultureInfo.InvariantCulture,
+            $"<line x1=\"{Fmt(x1)}\" y1=\"{Fmt(y1)}\" x2=\"{Fmt(x2)}\" y2=\"{Fmt(y2)}\" stroke=\"{stroke}\" stroke-opacity=\"{opacity:0.##}\" />");
+    }
+
+    private static void AppendText(StringBuilder sb, double x, double y, string anchor,
+        string fill, double opacity, string content, int fontWeight = 0, int fontSize = 0)
+    {
+        sb.Append(CultureInfo.InvariantCulture, $"<text x=\"{Fmt(x)}\" y=\"{Fmt(y)}\"");
+        if (!string.IsNullOrEmpty(anchor) && anchor != "start")
+        {
+            sb.Append(CultureInfo.InvariantCulture, $" text-anchor=\"{anchor}\"");
+        }
+        sb.Append(CultureInfo.InvariantCulture, $" fill=\"{fill}\" fill-opacity=\"{opacity:0.##}\"");
+        if (fontWeight > 0)
+        {
+            sb.Append(CultureInfo.InvariantCulture, $" font-weight=\"{fontWeight}\"");
+        }
+        if (fontSize > 0)
+        {
+            sb.Append(CultureInfo.InvariantCulture, $" font-size=\"{fontSize}\"");
+        }
+        sb.Append('>')
+            .Append(WebUtility.HtmlEncode(content))
+            .Append("</text>");
+    }
+
+    private static double MapX(DateTimeOffset t, DateTimeOffset minT, DateTimeOffset maxT, double left, double right)
+    {
+        var span = (maxT - minT).TotalSeconds;
+        if (span <= 0)
+        {
+            return left;
+        }
+        var pos = (t - minT).TotalSeconds / span;
+        return left + (pos * (right - left));
+    }
+
+    private static double MapY(double v, double minV, double maxV, double top, double bottom)
+    {
+        var range = maxV - minV;
+        if (range <= 0)
+        {
+            return bottom;
+        }
+        var pos = (v - minV) / range;
+        return bottom - (pos * (bottom - top));
+    }
+
+    private static string Fmt(double v) => v.ToString("0.##", CultureInfo.InvariantCulture);
+
+    private static string FormatY(double v)
+    {
+        var abs = Math.Abs(v);
+        if (abs >= 1_000_000)
+        {
+            return (v / 1_000_000d).ToString("0.##", CultureInfo.InvariantCulture) + "M";
+        }
+        if (abs >= 1_000)
+        {
+            return (v / 1_000d).ToString("0.##", CultureInfo.InvariantCulture) + "k";
+        }
+        if (abs >= 1)
+        {
+            return v.ToString("0.##", CultureInfo.InvariantCulture);
+        }
+        return v.ToString("0.###", CultureInfo.InvariantCulture);
+    }
+
+    private sealed record SeriesView(string Label, string Color);
+}

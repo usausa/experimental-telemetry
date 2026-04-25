@@ -8,7 +8,15 @@
 <MudText Typo="Typo.h5" GutterBottom="true">Logs</MudText>
 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">@entries.Count 件 (最新順, 最大 500)</MudText>
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mb-2">
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+    <MudSelect T="string" Label="Service" Value="@selectedService" ValueChanged="OnServiceChanged"
+               Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:200px">
+        <MudSelectItem T="string" Value="@(string.Empty)">(All)</MudSelectItem>
+        @foreach (var s in serviceNames)
+        {
+            <MudSelectItem T="string" Value="@s">@s</MudSelectItem>
+        }
+    </MudSelect>
     <MudTextField @bind-Value="filter" Placeholder="本文で絞り込み..." Immediate="true"
                   Variant="Variant.Outlined" Margin="Margin.Dense"
                   Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
@@ -42,6 +50,8 @@
 
 @code {
     private IReadOnlyList<LogEntry> entries = Array.Empty<LogEntry>();
+    private IReadOnlyList<string> serviceNames = Array.Empty<string>();
+    private string selectedService = string.Empty;
     private string filter = string.Empty;
 
     protected override void OnInitialized()
@@ -53,7 +63,16 @@
     private void OnStoreChanged(object? sender, EventArgs e) =>
         InvokeAsync(() => { Refresh(); StateHasChanged(); });
 
-    private void Refresh() => entries = Store.GetLogs();
+    private void Refresh()
+    {
+        serviceNames = Store.GetServiceNames();
+        if (!string.IsNullOrEmpty(selectedService) && !serviceNames.Contains(selectedService))
+        {
+            selectedService = string.Empty;
+        }
+        var svc = string.IsNullOrEmpty(selectedService) ? null : selectedService;
+        entries = Store.GetLogs(svc);
+    }
 
     private IEnumerable<LogEntry> Filtered()
     {
@@ -62,6 +81,12 @@
             return entries;
         }
         return entries.Where(e => e.Body.Contains(filter, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void OnServiceChanged(string value)
+    {
+        selectedService = value ?? string.Empty;
+        Refresh();
     }
 
     private static Color GetSeverityColor(int sev) => sev switch

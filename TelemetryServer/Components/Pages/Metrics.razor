@@ -6,45 +6,80 @@
 <PageTitle>Metrics - TelemetryServer</PageTitle>
 
 <MudText Typo="Typo.h5" GutterBottom="true">Metrics</MudText>
-<MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">@points.Count 件 (最新順, 最大 500)</MudText>
+<MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">Service と Metric を選択するとグラフが表示されます。</MudText>
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mb-2">
-    <MudTextField @bind-Value="filter" Placeholder="名前で絞り込み..." Immediate="true"
-                  Variant="Variant.Outlined" Margin="Margin.Dense"
-                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
-                  Style="max-width:300px" />
-    <MudSpacer />
-    <MudButton Variant="Variant.Outlined" Size="Size.Small"
-               StartIcon="@Icons.Material.Filled.Refresh" OnClick="Refresh">Refresh</MudButton>
-</MudStack>
+<MudPaper Class="pa-3 mb-3" Elevation="1">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+        <MudSelect T="string" Label="Service" Value="@selectedService" ValueChanged="OnServiceChanged"
+                   Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:220px"
+                   Disabled="@(serviceNames.Count == 0)">
+            @foreach (var s in serviceNames)
+            {
+                <MudSelectItem T="string" Value="@s">@s</MudSelectItem>
+            }
+        </MudSelect>
+        <MudSelect T="string" Label="Metric" Value="@selectedMetric" ValueChanged="OnMetricChanged"
+                   Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:300px"
+                   Disabled="@(metricNames.Count == 0)">
+            @foreach (var m in metricNames)
+            {
+                <MudSelectItem T="string" Value="@m">@m</MudSelectItem>
+            }
+        </MudSelect>
+        <MudSpacer />
+        <MudButton Variant="Variant.Outlined" Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.Refresh" OnClick="Refresh">Refresh</MudButton>
+    </MudStack>
+</MudPaper>
 
-<MudTable Items="Filtered()" Dense="true" Hover="true" Elevation="1" T="MetricPoint">
-    <HeaderContent>
-        <MudTh Style="width:90px">Time</MudTh>
-        <MudTh Style="width:140px">Service</MudTh>
-        <MudTh>Metric</MudTh>
-        <MudTh Style="width:120px">Kind</MudTh>
-        <MudTh Style="width:100px">Value</MudTh>
-        <MudTh Style="width:60px">Unit</MudTh>
-        <MudTh>Attributes</MudTh>
-    </HeaderContent>
-    <RowTemplate>
-        <MudTd Style="font-family:monospace;font-size:0.8rem">@context.Timestamp.ToLocalTime().ToString("HH:mm:ss")</MudTd>
-        <MudTd>@context.Resource.ServiceName</MudTd>
-        <MudTd Style="font-family:monospace;font-size:0.85rem">@context.Name</MudTd>
-        <MudTd><MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">@context.Kind</MudChip></MudTd>
-        <MudTd Style="text-align:right;font-family:monospace">@context.Value.ToString("0.###")</MudTd>
-        <MudTd>@context.Unit</MudTd>
-        <MudTd Style="font-family:monospace;font-size:0.75rem" Class="mud-text-secondary">@AttrSummary(context.Attributes)</MudTd>
-    </RowTemplate>
-    <NoRecordsContent>
-        <MudText Class="pa-4 mud-text-secondary">No metrics.</MudText>
-    </NoRecordsContent>
-</MudTable>
+<MudPaper Class="pa-3 mb-3" Elevation="1">
+    @if (snapshot is null)
+    {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary pa-4" Style="text-align:center">
+            @(serviceNames.Count == 0 ? "テレメトリはまだ受信していません。" : "Service と Metric を選択してください。")
+        </MudText>
+    }
+    else
+    {
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mb-2">
+            <MudText Typo="Typo.subtitle1" Style="font-family:monospace">@snapshot.MetricName</MudText>
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">@snapshot.Kind</MudChip>
+            @if (!string.IsNullOrEmpty(snapshot.Unit))
+            {
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@snapshot.Unit</MudChip>
+            }
+            <MudSpacer />
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">@snapshot.Points.Count points · @chartSeries.Count series</MudText>
+        </MudStack>
+        <TimeSeriesChart Series="@chartSeries" Unit="@snapshot.Unit" Height="320" EmptyMessage="No data points." />
+    }
+</MudPaper>
+
+@if (snapshot is not null && snapshot.Points.Count > 0)
+{
+    <MudPaper Class="pa-2" Elevation="1">
+        <MudTable Items="LatestPoints()" Dense="true" Hover="true" T="MetricPoint">
+            <HeaderContent>
+                <MudTh Style="width:120px">Time</MudTh>
+                <MudTh Style="width:120px">Value</MudTh>
+                <MudTh>Attributes</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd Style="font-family:monospace;font-size:0.8rem">@context.Timestamp.ToLocalTime().ToString("HH:mm:ss")</MudTd>
+                <MudTd Style="text-align:right;font-family:monospace">@context.Value.ToString("0.###")</MudTd>
+                <MudTd Style="font-family:monospace;font-size:0.75rem" Class="mud-text-secondary">@FormatAttrs(context.Attributes)</MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+}
 
 @code {
-    private IReadOnlyList<MetricPoint> points = Array.Empty<MetricPoint>();
-    private string filter = string.Empty;
+    private IReadOnlyList<string> serviceNames = Array.Empty<string>();
+    private IReadOnlyList<string> metricNames = Array.Empty<string>();
+    private string? selectedService;
+    private string? selectedMetric;
+    private MetricSeriesSnapshot? snapshot;
+    private IReadOnlyList<ChartSeries> chartSeries = Array.Empty<ChartSeries>();
 
     protected override void OnInitialized()
     {
@@ -55,18 +90,77 @@
     private void OnStoreChanged(object? sender, EventArgs e) =>
         InvokeAsync(() => { Refresh(); StateHasChanged(); });
 
-    private void Refresh() => points = Store.GetMetrics();
-
-    private IEnumerable<MetricPoint> Filtered()
+    private void Refresh()
     {
-        if (string.IsNullOrWhiteSpace(filter))
+        serviceNames = Store.GetServiceNames();
+        if (selectedService is null || !serviceNames.Contains(selectedService))
         {
-            return points;
+            selectedService = serviceNames.FirstOrDefault();
         }
-        return points.Where(p => p.Name.Contains(filter, StringComparison.OrdinalIgnoreCase));
+        UpdateMetricNames();
+        UpdateSnapshot();
     }
 
-    private static string AttrSummary(IReadOnlyList<KeyValueAttr> attrs)
+    private void UpdateMetricNames()
+    {
+        metricNames = selectedService is null
+            ? Array.Empty<string>()
+            : Store.GetMetricNames(selectedService);
+        if (selectedMetric is null || !metricNames.Contains(selectedMetric))
+        {
+            selectedMetric = metricNames.FirstOrDefault();
+        }
+    }
+
+    private void UpdateSnapshot()
+    {
+        if (selectedService is null || selectedMetric is null)
+        {
+            snapshot = null;
+            chartSeries = Array.Empty<ChartSeries>();
+            return;
+        }
+        snapshot = Store.GetMetricSeries(selectedService, selectedMetric);
+        chartSeries = BuildChartSeries(snapshot);
+    }
+
+    private static IReadOnlyList<ChartSeries> BuildChartSeries(MetricSeriesSnapshot? snap)
+    {
+        if (snap is null || snap.Points.Count == 0)
+        {
+            return Array.Empty<ChartSeries>();
+        }
+        return snap.Points
+            .GroupBy(p => AttrKey(p.Attributes))
+            .Select(g => new ChartSeries(
+                g.Key,
+                g.OrderBy(p => p.Timestamp)
+                    .Select(p => new ChartPoint(p.Timestamp, p.Value))
+                    .ToList()))
+            .ToList();
+    }
+
+    private static string AttrKey(IReadOnlyList<KeyValueAttr> attrs)
+    {
+        if (attrs.Count == 0)
+        {
+            return "(default)";
+        }
+        return string.Join(", ", attrs.Select(a => $"{a.Key}={a.Value}"));
+    }
+
+    private IEnumerable<MetricPoint> LatestPoints()
+    {
+        if (snapshot is null)
+        {
+            return Array.Empty<MetricPoint>();
+        }
+        return snapshot.Points
+            .OrderByDescending(p => p.Timestamp)
+            .Take(50);
+    }
+
+    private static string FormatAttrs(IReadOnlyList<KeyValueAttr> attrs)
     {
         if (attrs.Count == 0)
         {
@@ -74,6 +168,20 @@
         }
         return string.Join(", ", attrs.Take(4).Select(a => $"{a.Key}={a.Value}"))
             + (attrs.Count > 4 ? $" (+{attrs.Count - 4})" : string.Empty);
+    }
+
+    private void OnServiceChanged(string value)
+    {
+        selectedService = value;
+        selectedMetric = null;
+        UpdateMetricNames();
+        UpdateSnapshot();
+    }
+
+    private void OnMetricChanged(string value)
+    {
+        selectedMetric = value;
+        UpdateSnapshot();
     }
 
     public void Dispose() => Store.Changed -= OnStoreChanged;

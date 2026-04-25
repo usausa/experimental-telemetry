@@ -13,8 +13,9 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddGrpc();
 
-var capacity = builder.Configuration.GetValue("TelemetryStore:Capacity", 5000);
-builder.Services.AddSingleton<ITelemetryStore>(_ => new InMemoryTelemetryStore(capacity));
+var storeOptions = builder.Configuration.GetSection("TelemetryStore").Get<TelemetryStoreOptions>() ?? new TelemetryStoreOptions();
+builder.Services.AddSingleton(storeOptions);
+builder.Services.AddSingleton<ITelemetryStore, InMemoryTelemetryStore>();
 builder.Services.AddSingleton<DummyDataGenerator>();
 
 var app = builder.Build();
