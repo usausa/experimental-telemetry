@@ -15,7 +15,7 @@ builder.Services.AddGrpc();
 
 var storeOptions = builder.Configuration.GetSection("TelemetryStore").Get<TelemetryStoreOptions>() ?? new TelemetryStoreOptions();
 builder.Services.AddSingleton(storeOptions);
-builder.Services.AddSingleton<ITelemetryStore, InMemoryTelemetryStore>();
+builder.Services.AddSingleton<ITelemetryStore, SqliteTelemetryStore>();
 builder.Services.AddSingleton<DummyDataGenerator>();
 
 var app = builder.Build();
