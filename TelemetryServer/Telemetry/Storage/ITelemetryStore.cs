@@ -26,5 +26,7 @@ public interface ITelemetryStore
 
     void Clear();
 
+    int PurgeExpired();
+
     event EventHandler<EventArgs>? Changed;
 }

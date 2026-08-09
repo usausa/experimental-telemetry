@@ -893,6 +893,75 @@ public sealed class SqliteTelemetryStore : ITelemetryStore
         command.ExecuteNonQuery();
     }
 
+    public int PurgeExpired()
+    {
+        if (options.RetentionDays <= 0)
+        {
+            return 0;
+        }
+
+        // Timestamps are stored as round-trip UTC strings, so they order lexicographically.
+        var cutoff = FormatDateTime(DateTimeOffset.UtcNow.AddDays(-options.RetentionDays));
+
+        int deleted;
+        lock (sync)
+        {
+            using var connection = OpenConnection();
+            using var transaction = connection.BeginTransaction();
+
+            deleted = 0;
+
+            using (var deleteMetrics = connection.CreateCommand())
+            {
+                deleteMetrics.Transaction = transaction;
+                deleteMetrics.CommandText = "DELETE FROM metrics WHERE received_at_utc < $cutoff;";
+                deleteMetrics.Parameters.AddWithValue("$cutoff", cutoff);
+                deleted += deleteMetrics.ExecuteNonQuery();
+            }
+
+            using (var deleteLogs = connection.CreateCommand())
+            {
+                deleteLogs.Transaction = transaction;
+                deleteLogs.CommandText = "DELETE FROM logs WHERE received_at_utc < $cutoff;";
+                deleteLogs.Parameters.AddWithValue("$cutoff", cutoff);
+                deleted += deleteLogs.ExecuteNonQuery();
+            }
+
+            using (var deleteSpans = connection.CreateCommand())
+            {
+                deleteSpans.Transaction = transaction;
+                deleteSpans.CommandText = "DELETE FROM spans WHERE received_at_utc < $cutoff;";
+                deleteSpans.Parameters.AddWithValue("$cutoff", cutoff);
+                deleted += deleteSpans.ExecuteNonQuery();
+            }
+
+            using (var deleteTraceInfo = connection.CreateCommand())
+            {
+                deleteTraceInfo.Transaction = transaction;
+                deleteTraceInfo.CommandText = "DELETE FROM trace_info WHERE last_updated_utc < $cutoff;";
+                deleteTraceInfo.Parameters.AddWithValue("$cutoff", cutoff);
+                deleted += deleteTraceInfo.ExecuteNonQuery();
+            }
+
+            // A trace whose spans have all expired would leave its entry behind.
+            using (var deleteOrphans = connection.CreateCommand())
+            {
+                deleteOrphans.Transaction = transaction;
+                deleteOrphans.CommandText = "DELETE FROM trace_info WHERE trace_id NOT IN (SELECT trace_id FROM spans);";
+                deleted += deleteOrphans.ExecuteNonQuery();
+            }
+
+            transaction.Commit();
+        }
+
+        if (deleted > 0)
+        {
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+
+        return deleted;
+    }
+
     private void EnforceTraceLimit(SqliteConnection connection, SqliteTransaction transaction)
     {
         using var query = connection.CreateCommand();

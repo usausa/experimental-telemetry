@@ -438,3 +438,7 @@ CLAUDE.local.md
 # Custom
 desktop.ini
 __*
+
+# The [Ll]ogs/ rule above also matches the OTLP proto directories
+!TelemetryServer/Protos/opentelemetry/proto/logs/
+!TelemetryServer/Protos/opentelemetry/proto/collector/logs/

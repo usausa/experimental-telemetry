@@ -17,6 +17,7 @@ var storeOptions = builder.Configuration.GetSection("TelemetryStore").Get<Teleme
 builder.Services.AddSingleton(storeOptions);
 builder.Services.AddSingleton<ITelemetryStore, SqliteTelemetryStore>();
 builder.Services.AddSingleton<DummyDataGenerator>();
+builder.Services.AddHostedService<TelemetryRetentionService>();
 
 var app = builder.Build();
 

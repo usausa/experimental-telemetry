@@ -4,6 +4,8 @@ public sealed class TelemetryStoreOptions
 {
     public string DatabasePath { get; set; } = "App_Data/telemetry.db";
 
+    public int RetentionDays { get; set; } = 7;
+
     public int MaxPointsPerMetricSeries { get; set; } = 500;
 
     public int MaxLogsPerService { get; set; } = 2000;

@@ -9,7 +9,8 @@
 
   <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore" Version="2.76.0" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.10" />
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.12" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="10.0.7" />
     <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.7" />
     <PackageReference Include="MudBlazor" Version="9.*" />
