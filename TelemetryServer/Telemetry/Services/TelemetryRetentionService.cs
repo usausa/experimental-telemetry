@@ -14,7 +14,7 @@ public sealed class TelemetryRetentionService : BackgroundService
 
     public TelemetryRetentionService(
         ILogger<TelemetryRetentionService> log,
-        TelemetryStoreOptions options
+        TelemetryStoreOptions options,
         ITelemetryStore store)
     {
         this.log = log;
