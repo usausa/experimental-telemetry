@@ -21,7 +21,7 @@ public sealed class SqliteTelemetryStore : ITelemetryStore
 
         var databasePath = ResolveDatabasePath(options.DatabasePath, hostEnvironment.ContentRootPath);
         var databaseDirectory = Path.GetDirectoryName(databasePath);
-        if (!string.IsNullOrEmpty(databaseDirectory))
+        if (!String.IsNullOrEmpty(databaseDirectory))
         {
             Directory.CreateDirectory(databaseDirectory);
         }
@@ -1061,7 +1061,7 @@ public sealed class SqliteTelemetryStore : ITelemetryStore
     {
         var orderedSpans = spans.OrderBy(span => span.StartTime).ToList();
         var spanIds = new HashSet<string>(orderedSpans.Select(span => span.SpanId), StringComparer.Ordinal);
-        var rootSpan = orderedSpans.FirstOrDefault(span => string.IsNullOrEmpty(span.ParentSpanId) || !spanIds.Contains(span.ParentSpanId))
+        var rootSpan = orderedSpans.FirstOrDefault(span => String.IsNullOrEmpty(span.ParentSpanId) || !spanIds.Contains(span.ParentSpanId))
             ?? orderedSpans[0];
 
         var services = orderedSpans
@@ -1076,7 +1076,7 @@ public sealed class SqliteTelemetryStore : ITelemetryStore
             rootSpan.Name,
             orderedSpans.Min(span => span.StartTime),
             orderedSpans.Max(span => span.EndTime),
-            orderedSpans.Count(span => string.Equals(span.StatusCode, "ERROR", StringComparison.OrdinalIgnoreCase)));
+            orderedSpans.Count(span => String.Equals(span.StatusCode, "ERROR", StringComparison.OrdinalIgnoreCase)));
     }
 
     private static string ResolveDatabasePath(string configuredPath, string contentRootPath)

@@ -50,9 +50,9 @@ internal static class TelemetryMapper
             AnyValue.ValueOneofCase.IntValue => value.IntValue.ToString(CultureInfo.InvariantCulture),
             AnyValue.ValueOneofCase.DoubleValue => value.DoubleValue.ToString("G", CultureInfo.InvariantCulture),
             AnyValue.ValueOneofCase.BytesValue => Convert.ToHexString(value.BytesValue.Span),
-            AnyValue.ValueOneofCase.ArrayValue => "[" + string.Join(",",
+            AnyValue.ValueOneofCase.ArrayValue => "[" + String.Join(",",
                 value.ArrayValue.Values.Select(AnyValueToString)) + "]",
-            AnyValue.ValueOneofCase.KvlistValue => "{" + string.Join(",",
+            AnyValue.ValueOneofCase.KvlistValue => "{" + String.Join(",",
                 value.KvlistValue.Values.Select(kv => $"{kv.Key}={AnyValueToString(kv.Value)}")) + "}",
             _ => null,
         };
@@ -153,7 +153,7 @@ internal static class TelemetryMapper
                         resource,
                         scopeName,
                         FromUnixNano(record.TimeUnixNano != 0 ? record.TimeUnixNano : record.ObservedTimeUnixNano),
-                        string.IsNullOrEmpty(record.SeverityText) ? record.SeverityNumber.ToString() : record.SeverityText,
+                        String.IsNullOrEmpty(record.SeverityText) ? record.SeverityNumber.ToString() : record.SeverityText,
                         (int)record.SeverityNumber,
                         AnyValueToString(record.Body) ?? string.Empty,
                         ByteStringToHex(record.TraceId),
@@ -203,7 +203,7 @@ internal static class TelemetryMapper
     [SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "OTEL specification mandates lowercase hex for trace and span identifiers.")]
     private static string? ByteStringToHex(ByteString? bytes)
     {
-        if (bytes is null || bytes.Length == 0)
+        if ((bytes is null) || (bytes.Length == 0))
         {
             return null;
         }

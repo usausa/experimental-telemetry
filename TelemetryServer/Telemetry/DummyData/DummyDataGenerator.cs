@@ -168,7 +168,7 @@ public sealed class DummyDataGenerator
             var childStart = rootStart.AddMilliseconds(offset);
             var maxDur = (int)Math.Max(1, (rootEnd - childStart).TotalMilliseconds - 1);
             var childDuration = TimeSpan.FromMilliseconds(rng.Next(1, maxDur + 1));
-            var childError = rootError && j == childCount - 1;
+            var childError = rootError && (j == childCount - 1);
             yield return new SpanEntry(
                 now,
                 childResource,

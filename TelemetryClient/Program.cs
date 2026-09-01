@@ -14,7 +14,7 @@ using OpenTelemetry.Proto.Trace.V1;
 AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
 
 var endpoint = args.Length > 0 ? args[0] : "http://localhost:4317";
-var count = args.Length > 1 && int.TryParse(args[1], CultureInfo.InvariantCulture, out var n) ? n : 3;
+var count = (args.Length > 1) && Int32.TryParse(args[1], CultureInfo.InvariantCulture, out var n) ? n : 3;
 
 Console.WriteLine($"TelemetryClient -> {endpoint} (count={count})");
 
