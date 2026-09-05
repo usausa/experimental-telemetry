@@ -49,8 +49,8 @@
 </MudTable>
 
 @code {
-    private IReadOnlyList<LogEntry> entries = Array.Empty<LogEntry>();
-    private IReadOnlyList<string> serviceNames = Array.Empty<string>();
+    private IReadOnlyList<LogEntry> entries = [];
+    private IReadOnlyList<string> serviceNames = [];
     private string selectedService = string.Empty;
     private string filter = string.Empty;
 
@@ -95,7 +95,7 @@
         >= 13 => Color.Error,
         >= 9 => Color.Warning,
         >= 5 => Color.Info,
-        _ => Color.Default,
+        _ => Color.Default
     };
 
     private static string AttrSummary(IReadOnlyList<KeyValueAttr> attrs)

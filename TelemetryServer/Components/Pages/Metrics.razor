@@ -74,12 +74,12 @@
 }
 
 @code {
-    private IReadOnlyList<string> serviceNames = Array.Empty<string>();
-    private IReadOnlyList<string> metricNames = Array.Empty<string>();
+    private IReadOnlyList<string> serviceNames = [];
+    private IReadOnlyList<string> metricNames = [];
     private string? selectedService;
     private string? selectedMetric;
     private MetricSeriesSnapshot? snapshot;
-    private IReadOnlyList<ChartSeries> chartSeries = Array.Empty<ChartSeries>();
+    private IReadOnlyList<ChartSeries> chartSeries = [];
 
     protected override void OnInitialized()
     {
@@ -103,9 +103,7 @@
 
     private void UpdateMetricNames()
     {
-        metricNames = selectedService is null
-            ? Array.Empty<string>()
-            : Store.GetMetricNames(selectedService);
+        metricNames = selectedService is null ? [] : Store.GetMetricNames(selectedService);
         if (selectedMetric is null || !metricNames.Contains(selectedMetric))
         {
             selectedMetric = metricNames.FirstOrDefault();
@@ -117,7 +115,7 @@
         if (selectedService is null || selectedMetric is null)
         {
             snapshot = null;
-            chartSeries = Array.Empty<ChartSeries>();
+            chartSeries = [];
             return;
         }
         snapshot = Store.GetMetricSeries(selectedService, selectedMetric);
@@ -128,7 +126,7 @@
     {
         if (snap is null || snap.Points.Count == 0)
         {
-            return Array.Empty<ChartSeries>();
+            return [];
         }
         return snap.Points
             .GroupBy(p => AttrKey(p.Attributes))
@@ -153,7 +151,7 @@
     {
         if (snapshot is null)
         {
-            return Array.Empty<MetricPoint>();
+            return [];
         }
         return snapshot.Points
             .OrderByDescending(p => p.Timestamp)

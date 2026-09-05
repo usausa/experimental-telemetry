@@ -91,8 +91,8 @@
 </MudTable>
 
 @code {
-    private IReadOnlyList<TraceSummary> summaries = Array.Empty<TraceSummary>();
-    private IReadOnlyList<string> serviceNames = Array.Empty<string>();
+    private IReadOnlyList<TraceSummary> summaries = [];
+    private IReadOnlyList<string> serviceNames = [];
     private string selectedService = string.Empty;
     private string filter = string.Empty;
     private string? expandedTraceId;
